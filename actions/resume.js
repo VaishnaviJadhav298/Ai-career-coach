@@ -65,9 +65,6 @@ export async function improveWithAI({ current, type }) {
     Format the response as a single paragraph without any additional text or explanations.
   `;
 
-    const result = await model.generateContent(prompt);
-    const improveContent = result.response.text().trim();
-
     return improveContent;
   } catch (error) {
     console.error("Error improve with AI: ", error);

@@ -22,8 +22,9 @@ import EntryForm from "./entry-form";
 import { entriesToMarkdown } from "@/app/lib/helper";
 import { useUser } from "@clerk/nextjs";
 import MDEditor from "@uiw/react-md-editor";
-import html2pdf from "html2pdf.js/dist/html2pdf.min.js";
+//import html2pdf from "html2pdf.js/dist/html2pdf.min.js";
 import { toast } from "sonner";
+
 
 const ResumeBuilder = ({ initialContent }) => {
   const [activeTap, setActiveTap] = useState("edit");
@@ -120,31 +121,34 @@ const ResumeBuilder = ({ initialContent }) => {
   };
 
   const generatePDF = async () => {
-    setIsGenerating(true);
-    try {
-      const element = document.getElementById("resume-pdf");
-      const opt = {
-        margin: [15, 15],
-        filename: "resume.pdf",
-        image: { type: "jpeg", quality: 0.98 },
-        html2canvas: { scale: 2 },
-        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-      };
+  setIsGenerating(true);
+  try {
+    const html2pdf = (await import("html2pdf.js")).default;
 
-      await html2pdf().set(opt).from(element).save();
-    } catch (error) {
-      console.error("PDF generation error:", error);
-    } finally {
-      setIsGenerating(false);
-    }
-  };
+    const element = document.getElementById("resume-pdf");
+    const opt = {
+      margin: [15, 15],
+      filename: "resume.pdf",
+      image: { type: "jpeg", quality: 0.98 },
+      html2canvas: { scale: 2 },
+      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+    };
+
+    await html2pdf().set(opt).from(element).save();
+  } catch (error) {
+    console.error("PDF generation error:", error);
+  } finally {
+    setIsGenerating(false);
+  }
+};
+
 
   return (
     <div className="space-y-4">
       <div className="flex flex-col md:flex-row justify-between items-center gap-2">
-        <h className="font-bold gradient-title text-5xl md:text-6xl">
+        <h1 className="font-bold gradient-title text-5xl md:text-6xl">
           Resume Builder
-        </h>
+        </h1>
 
         <div className="space-x-2">
           <Button variant="destructive" disabled={isSaving} onClick={onSubmit}>

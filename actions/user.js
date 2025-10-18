@@ -10,27 +10,41 @@ export async function updateUser(data) {
 
     const result = await db.$transaction(
       async (tx) => {
-        // find if the industry exists
+        // Check if the industry insight already exists
         let industryInsight = await tx.industryInsight.findUnique({
           where: {
             industry: data.industry,
           },
         });
 
-        // if industry doesn't exist, create it with default values - will replace it with ai later
+        // If not, generate and create industry insight
         if (!industryInsight) {
           const insights = await generateAIInsights(data.industry);
 
-          industryInsight = await db.industryInsight.create({
+          industryInsight = await tx.industryInsight.create({
             data: {
               industry: data.industry,
-              ...insights,
-              nextUpdate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+              salaryRanges: {
+                create: insights.salaryRanges, // Array of objects with role, min, max, median, location
+              },
+              topSkills: {
+                create: insights.topSkills.map((skill) => ({ skill })),
+              },
+              keyTrends: {
+                create: insights.keyTrends.map((trend) => ({ trend })),
+              },
+              recommendedSkills: {
+                create: insights.recommendedSkills.map((skill) => ({ skill })),
+              },
+              growthRate: insights.growthRate,
+              demandLevel: insights.demandLevel,
+              marketOutlook: insights.marketOutlook,
+              nextUpdate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days later
             },
           });
         }
 
-        // update the user
+        // Update the user with selected industry and profile data
         const updatedUser = await tx.user.update({
           where: {
             id: user.id,
@@ -39,21 +53,24 @@ export async function updateUser(data) {
             industry: data.industry,
             experience: data.experience,
             bio: data.bio,
-            skills: data.skills,
+            skills: {
+              deleteMany: {}, // clear previous skills
+              create: data.skills.map((skill) => ({ skill })),
+            },
           },
         });
 
         return { updatedUser, industryInsight };
       },
       {
-        timeout: 10000, //default: 5000
+        timeout: 10000, // in ms
       }
     );
 
     return { success: true, ...result };
   } catch (error) {
     console.log("Error updating user and industry: ", error.message);
-    throw new Error("Faild to update profile");
+    throw new Error("Failed to update profile");
   }
 }
 
